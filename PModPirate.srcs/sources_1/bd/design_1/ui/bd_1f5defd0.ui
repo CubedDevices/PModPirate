@@ -1,0 +1,56 @@
+{
+   "ActiveEmotionalView":"Default View",
+   "Default View_ScaleFactor":"2.62013",
+   "Default View_TopLeft":"1837,-18",
+   "ExpandedHierarchyInLayout":"",
+   "guistr":"# # String gsaved with Nlview 7.8.0 2024-04-26 e1825d835c VDI=44 GEI=38 GUI=JA:21.0 TLS
+#  -string -flagsOSRD
+preplace port uart_rtl -pg 1 -lvl 7 -x 2150 -y 120 -defaultsOSRD
+preplace port port-id_clk -pg 1 -lvl 0 -x 0 -y 670 -defaultsOSRD
+preplace port port-id_reset -pg 1 -lvl 0 -x 0 -y 580 -defaultsOSRD
+preplace port port-id_status_led -pg 1 -lvl 7 -x 2150 -y 490 -defaultsOSRD
+preplace portBus pmod_io -pg 1 -lvl 7 -x 2150 -y 450 -defaultsOSRD
+preplace inst clk_wiz_0 -pg 1 -lvl 1 -x 120 -y 660 -defaultsOSRD
+preplace inst microblaze_riscv_0 -pg 1 -lvl 4 -x 1200 -y 270 -defaultsOSRD
+preplace inst microblaze_riscv_0_local_memory -pg 1 -lvl 5 -x 1660 -y 280 -defaultsOSRD
+preplace inst microblaze_riscv_0_axi_periph -pg 1 -lvl 5 -x 1660 -y 110 -defaultsOSRD
+preplace inst microblaze_riscv_0_axi_intc -pg 1 -lvl 3 -x 780 -y 190 -defaultsOSRD
+preplace inst microblaze_riscv_0_xlconcat -pg 1 -lvl 2 -x 440 -y 200 -defaultsOSRD
+preplace inst mdm_1 -pg 1 -lvl 3 -x 780 -y 380 -defaultsOSRD
+preplace inst rst_clk_wiz_0_100M -pg 1 -lvl 2 -x 440 -y 550 -defaultsOSRD
+preplace inst rst_clk_wiz_0_200M -pg 1 -lvl 5 -x 1660 -y 690 -defaultsOSRD
+preplace inst axi_uartlite_0 -pg 1 -lvl 6 -x 1990 -y 130 -defaultsOSRD
+preplace inst pmod_stream_0 -pg 1 -lvl 6 -x 1990 -y 470 -defaultsOSRD
+preplace netloc Net 1 6 1 NJ 450
+preplace netloc axi_uartlite_0_interrupt 1 1 6 230 10 NJ 10 NJ 10 NJ 10 NJ 10 2130
+preplace netloc clk_wiz_0_clk_out2 1 1 5 NJ 660 NJ 660 NJ 660 1480 490 N
+preplace netloc clk_wiz_0_locked 1 1 4 230 730 NJ 730 NJ 730 NJ
+preplace netloc clock_rtl_1 1 0 1 NJ 670
+preplace netloc mdm_1_debug_sys_rst 1 1 3 260 60 NJ 60 910
+preplace netloc microblaze_riscv_0_Clk 1 1 5 220 270 620 80 940 110 1480 360 1850
+preplace netloc microblaze_riscv_0_intr 1 2 1 N 200
+preplace netloc pmod_stream_0_irq 1 1 6 250 30 NJ 30 NJ 30 NJ 30 NJ 30 2120
+preplace netloc pmod_stream_0_status_led 1 6 1 NJ 490
+preplace netloc reset_rtl_1 1 0 5 20 530 240 450 NJ 450 NJ 450 1460J
+preplace netloc rst_clk_wiz_0_100M_bus_struct_reset 1 2 3 650J 310 920J 360 1460
+preplace netloc rst_clk_wiz_0_100M_mb_reset 1 2 2 640 300 N
+preplace netloc rst_clk_wiz_0_100M_peripheral_aresetn 1 2 4 630 70 NJ 70 1470 190 1860
+preplace netloc rst_clk_wiz_0_200M_peripheral_aresetn 1 5 1 1860 510n
+preplace netloc axi_uartlite_0_UART 1 6 1 NJ 120
+preplace netloc microblaze_riscv_0_axi_dp 1 4 1 1460 90n
+preplace netloc microblaze_riscv_0_axi_periph_M01_AXI 1 5 1 N 110
+preplace netloc microblaze_riscv_0_axi_periph_M02_AXI 1 5 1 1840 130n
+preplace netloc microblaze_riscv_0_debug 1 3 1 930 260n
+preplace netloc microblaze_riscv_0_dlmb_1 1 4 1 N 250
+preplace netloc microblaze_riscv_0_ilmb_1 1 4 1 N 270
+preplace netloc microblaze_riscv_0_intc_axi 1 2 4 650 20 NJ 20 NJ 20 1840
+preplace netloc microblaze_riscv_0_interrupt 1 3 1 930 190n
+levelinfo -pg 1 0 120 440 780 1200 1660 1990 2150
+pagesize -pg 1 -db -bbox -sgen -90 0 2300 790
+"
+}
+{
+   "da_axi4_cnt":"2",
+   "da_board_cnt":"5",
+   "da_microblaze_riscv_cnt":"2"
+}

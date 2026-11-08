@@ -1,0 +1,3 @@
+# GTK and libadwaita come from the operating system, not from pip.
+# See README.md for the Linux packages and the Windows MSYS2 packages.
+pyserial>=3.5

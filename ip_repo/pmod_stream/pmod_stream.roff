@@ -1,0 +1,369 @@
+.TH PMOD_STREAM 7 "7 November 2026" "v1.0" "PModPirate"
+.SH NAME
+pmod_stream \- Pmod pin-stream player
+.SH SUMMARY
+Catalog IP
+.B user.org:user:pmod_stream:1.0 .
+AXI4-Lite slave, 64 KB window, 8-bit bidirectional Pmod port.
+The player consumes a run-length stream from block RAM and drives the pins on
+.B play_clk .
+Software fills the stream.
+It does not bit-bang the pins.
+.PP
+.TS
+box expand tab(;);
+lb lb
+l lw(42).
+Item;Value
+Play timebase;play_clk, 200 MHz in the Cmod S7 reference system
+AXI clock;s_axi_aclk, independent of play_clk
+Port width;8 bits, per-pin output enable
+TX memory;8192 words (32 KB) at the default parameter
+Capture;8192 samples, one byte per played word
+Word format;{OE[7:0], DOUT[7:0], duration[15:0]}
+Duration;1 to 65535 play_clk cycles (5 ns to 327.675 us at 200 MHz)
+Sample point;last cycle of each word, after a 2-flop synchronizer
+Idle;IDLE_OE and IDLE_OUT while not playing. Reset forces Hi-Z
+Interrupt;level high, done or fault, while CTRL.irq_en is set
+.TE
+.SH DESCRIPTION
+A Pmod header is an 8-bit digital connector.
+Protocols such as SPI, I2C, UART, and timed GPIO are produced by writing a list of pin states and how long each state lasts.
+.B pmod_stream
+walks that list on
+.B play_clk
+and records the pin levels at the end of every entry.
+.PP
+While the player is idle, the pins follow
+.B IDLE_OE
+and
+.B IDLE_OUT .
+A 1 in
+.B IDLE_OE
+drives the matching
+.B IDLE_OUT
+bit.
+A 0 releases the pin.
+Both registers reset to zero, so the port comes out of reset Hi-Z.
+The end of a play, including a fault and an abort, restores those idle levels.
+.PP
+Open-drain protocols are a property of the stream, not a pin mode in the IP.
+A zero is written as output-enable 1 and data 0.
+A one is written as output-enable 0.
+The player never has to drive a high on that pin.
+An external or on-board pull-up supplies the high level.
+.SH PORTS
+.TS
+box expand tab(;);
+lb lb lb lw(28).
+Port;Direction;Clock;Description
+s_axi_*;slave;s_axi_aclk;AXI4-Lite, 16-bit address, 32-bit data
+s_axi_aclk;in;-;Register and memory port A clock
+s_axi_aresetn;in;s_axi_aclk;Active-low AXI reset
+play_clk;in;-;Player timebase
+play_aresetn;in;async, synced to play_clk;Active-low player reset
+pmod_io[7:0];inout;play_clk;Pmod data pins
+irq;out;s_axi_aclk;Level-high interrupt
+status_led;out;s_axi_aclk;Busy, or a heartbeat while idle
+.TE
+.PP
+.B s_axi
+is associated with
+.B s_axi_aclk
+and
+.B s_axi_aresetn .
+.B play_clk
+is associated with
+.B play_aresetn .
+The two clocks are asynchronous.
+Start, abort, done, idle levels, busy, and the pin sample cross between them.
+.B irq
+is level high.
+It stays asserted while
+.B CTRL.irq_en
+is set and either
+.B STATUS.done
+or
+.B STATUS.fault
+is set.
+.SH PARAMETERS
+.TS
+box expand tab(;);
+lb lb lb lb.
+Name;Default;Legal;Meaning
+TX_WORDS;8192;up to 8192;Number of stream words in the TX RAM
+RX_SAMPLES;8192;multiple of 4, up to 8192;Number of captured pin bytes
+.TE
+.PP
+The address map below is fixed for the default sizes.
+.B TX_WORDS
+above 8192 does not fit the 13-bit word index.
+.B RX_SAMPLES
+is packed four bytes per AXI word, so it must be a multiple of four.
+The packaged default is the size used by the PModPirate reference system.
+.SH "STREAM WORD"
+Each TX location is one 32-bit little-endian word.
+A write must have all four byte strobes set.
+A partial strobe is ignored.
+.PP
+.TS
+box expand tab(;);
+lb lb lb.
+Bits;Field;Meaning
+31:24;OE;1 = drive pmod_io[i], 0 = Hi-Z
+23:16;DOUT;Level driven where OE is 1
+15:0;DURATION;play_clk cycles this word is held, minimum 1
+.TE
+.PP
+The word is applied on a rising edge of
+.B play_clk
+and remains on the pins for
+.B DURATION
+cycles.
+On the edge where that count expires, the player stores the synchronized pin sample and either applies the next word or returns to idle.
+The last word is not held for an extra cycle.
+.PP
+A duration of 0 is a fault.
+The play stops and the pins return to idle.
+Holds longer than 65535 cycles are several words with the same OE and DOUT.
+At 200 MHz the longest single word is 327.675 us.
+.SH CAPTURE
+On the last cycle of each word the player writes one byte into the capture RAM.
+Bit
+.I i
+of that byte is
+.B pmod_io[i]
+after two
+.B play_clk
+flops.
+The byte for word
+.I n
+is stored at sample index
+.I n .
+.B CAP_COUNT
+reports how many samples the play stored.
+.PP
+Because the sample passes through two flops, a level that changes on the same edge that starts a very short word can still show the previous level.
+A word whose duration is at least 4 play clocks shows a level that became valid at the start of that word.
+Place a word boundary on the instant that matters, and give that word enough cycles for the synchronizer.
+Mid-bit of a UART character, the clock-high side of SPI, and the SCL-high window of an I2C ACK are the usual places.
+Samples from other words are ignored by the consumer.
+.PP
+Four samples are packed into one AXI word, little-endian.
+Sample
+.I i
+is byte
+.I "(i mod 4)"
+of the word at the RX base plus
+.I "4 * (i / 4)" .
+Byte 0 is bits 7:0.
+.SH "REGISTER MAP"
+Offsets are bytes from the base of the slave.
+The slave window is 64 KB.
+In the Cmod S7 reference system that base is
+.B 0x00010000 ,
+directly above the 64 KB MicroBlaze local memory.
+.PP
+.TS
+box expand tab(;);
+lb lb lb lw(34).
+Offset;Name;Access;Description
+0x0000;CTRL;R/W;bit 0 start, bit 1 abort, bit 2 irq_en
+0x0004;STATUS;R/W1C;bit 0 busy, bit 1 done, bit 2 fault
+0x0008;LENGTH;R/W;Number of TX words to play, bits 15:0
+0x000C;CAP_COUNT;R;Samples stored by the last play, bits 15:0
+0x0010;IDLE_OUT;R/W;Idle drive data, bits 7:0
+0x0014;IDLE_OE;R/W;Idle output enable, bits 7:0. 1 = drive
+0x0018;PIN_IN;R;Synchronized pin sample, bits 7:0
+0x1000;TX;R/W;8192 words, through 0x8FFC
+0x9000;RX;R;2048 packed words, through 0xAFFC
+.TE
+.PP
+Reserved bits read as 0.
+Writes to reserved bits are ignored.
+AXI responses are OKAY.
+.B CTRL
+reads back
+.B irq_en
+in bit 2.
+Start and abort are pulses, so those bits read as 0.
+.PP
+.B STATUS.done
+and
+.B STATUS.fault
+are sticky.
+Write 1 to the bit to clear it.
+Writing 0 leaves it.
+.B STATUS.busy
+is read-only.
+.PP
+.B PIN_IN
+is the capture synchronizer crossed back to
+.B s_axi_aclk .
+It is the register for a GPIO read that does not need a timed sample.
+It is not a substitute for the capture RAM during a play.
+.PP
+TX reads and writes use the full 32-bit word.
+RX is read-only.
+A TX write with
+.B WSTRB
+other than
+.B 0xF
+does not change memory.
+.SH "PROGRAMMING A PLAY"
+.IP 1. 3
+Write the words at
+.B TX ,
+starting at offset 0x1000.
+.IP 2.
+Write
+.B LENGTH
+with the word count.
+Do this before start.
+The value is copied across the clock domain with the start pulse.
+.IP 3.
+Clear the previous result by writing
+.B 0x6
+to
+.B STATUS .
+.IP 4.
+Write
+.B CTRL
+bit 0.
+Bit 2 may be set in the same write to enable the interrupt.
+.IP 5.
+Poll
+.B STATUS
+until
+.B done
+is set and
+.B busy
+is clear, or wait for
+.B irq .
+.IP 6.
+If
+.B fault
+is clear, read
+.B CAP_COUNT
+and the packed samples at
+.B RX .
+.PP
+A second start while
+.B busy
+is set, or while a start is still crossing into
+.B play_clk ,
+sets
+.B fault
+and does not start another play.
+Wait for
+.B done
+before starting again.
+.PP
+Abort by writing
+.B CTRL
+bit 1.
+The player returns to idle, sets
+.B done ,
+and does not set
+.B fault
+for the abort itself.
+.SH FAULTS
+.B STATUS.fault
+is set, the pins return to idle, and
+.B done
+is set, when any of the following happens.
+.IP \(bu 2
+.B LENGTH
+is 0 or greater than
+.B TX_WORDS .
+No word is driven.
+.IP \(bu
+A played word has duration 0.
+Words before it were driven.
+.IP \(bu
+The next word is not available on the cycle a word expires.
+That is an underrun.
+With the default memory and a prefetch queue of four words it is not expected for a legal duration of at least 1.
+.IP \(bu
+.B CTRL.start
+is written while a play is already active or a start is still pending.
+.PP
+.B CAP_COUNT
+then reports how many samples were stored before the stop.
+An abort is not a fault.
+.SH "CLOCK, RESET, AND STATUS LED"
+.B play_aresetn
+is synchronized into
+.B play_clk
+before it resets the player.
+.B s_axi_aresetn
+resets the AXI registers directly.
+Either reset clears output enable, so the pins are Hi-Z, and clears
+.B irq_en ,
+.B done ,
+and
+.B fault .
+.PP
+Idle levels use a multi-flop array synchronizer.
+A write to
+.B IDLE_OE
+or
+.B IDLE_OUT
+is visible on the pins a few
+.B play_clk
+cycles later, and only while the player is idle.
+During a play the stream overrides them.
+.PP
+.B status_led
+is high while
+.B STATUS.busy
+is set.
+While idle it follows bit 25 of a counter on
+.B s_axi_aclk .
+At 100 MHz that bit is high for about 0.34 s and low for about 0.34 s.
+.SH "REFERENCE SYSTEM"
+On the Cmod S7-25 design the slave is at
+.B 0x00010000
+and the UART is a separate peripheral.
+.B s_axi_aclk
+is 100 MHz.
+.B play_clk
+is 200 MHz.
+Both come from an MMCM whose input is the 12 MHz board clock.
+The interrupt is connected to the MicroBlaze interrupt controller.
+The firmware polls
+.B STATUS
+and leaves
+.B irq_en
+clear.
+The eight Pmod pins are LVCMOS33 with pull-ups.
+The status LED is a board LED.
+.PP
+Those choices belong to the board design.
+The IP itself only requires a stable
+.B play_clk ,
+an AXI clock, and the two active-low resets.
+.SH UTILIZATION
+Out-of-context synthesis of the default configuration, Vivado 2025.2, part xc7s25csga225-1:
+.PP
+.TS
+box expand tab(;);
+lb lb lb.
+Resource;Used;Device
+Slice LUTs;361;14600
+Slice registers;542;29200
+RAMB36;16;45
+RAMB18;4;90
+DSP;0;80
+.TE
+.PP
+The block RAM holds the 32 KB TX stream and the 8 KB capture buffer.
+The count is what inference produced for the true dual-port TX RAM and the four byte-wide capture banks.
+It is a synthesis result, not a placed-and-routed total for the whole design.
+.SH REVISION
+.TS
+box expand tab(;);
+lb lb lw(40).
+Version;Date;Notes
+1.0;2026-11-07;First packaged player. Default 8192 words and 8192 samples.
+.TE

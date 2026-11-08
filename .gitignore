@@ -1,0 +1,32 @@
+# Vivado products. The project, block design, and IP configuration stay.
+PModPirate.cache/
+PModPirate.gen/
+PModPirate.hw/
+PModPirate.ip_user_files/
+PModPirate.runs/
+PModPirate.sim/
+PModPirate.srcs/utils_1/
+.Xil/
+.vivado-ai/
+*.jou
+*.log
+*.str
+*.debug
+*.ltx
+*.bit
+*.bin
+*.dcp
+*.mmi
+*.pb
+webtalk*
+
+# Hardware handoff. write_hw_platform regenerates this before the Vitis flow.
+hw/*.xsa
+
+# Vitis workspace. scripts/create_vitis.py rebuilds it from fw/ and the XSA.
+vitis_ws/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
